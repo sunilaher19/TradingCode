@@ -29,52 +29,41 @@ The design ensures:
 
 ## 2. High-Level Architecture
 
-```
-+----------------+
-|   Front End   |
-| (WebSocket)   |
-+--------+------+
-         |
-         | WebSocket
-         v
-+---------------------------+
-|     Common Framework      |
-|                           |
-|  - Validation             |
-|  - Normalization          |
-|  - Order ID Generation    |
-|                           |
-|  Uses Aeron for internal  |
-|  messaging                |
-+-----------+---------------+
-            |
-            | Aeron (IPC / UDP Unicast)
-            v
-+---------------------------+
-|     Order Creator (OC)    |
-+-----------+---------------+
-            |
-            | Aeron (IPC / UDP Unicast)
-            v
-+---------------------------+
-|     Matching Engine       |
-+-----------+---------------+
-            |
-            | Aeron UDP Multicast
-            v
-+---------------------------+
-|     Price Distribution    |
-+---------------------------+
-            |
-            | Aeron UDP Multicast
-            v
-+---------------------------+
-|     Common Framework      |
-|                           |
-|  - Consumes price feed    |
-|  - Publishes to WebSocket |
-+---------------------------+
-```
+                  +----------------+
+                  |   WebSocket    |
+                  |   Adapter      |
+                  +--------+-------+
+                           |
+                           | (OrderRequest Event)
+                           v
+               +--------------------------------+
+               |        Common Core             |
+               |                                |
+               |  - Validation                  |
+               |  - Normalization               |
+               |  - OrderId Generation          |
+               |  - Event Routing               |
+               +--------+------------+----------+
+                        |            |
+            (Aeron)     |            | (Aeron)
+                        v            v
+               +----------------+   +----------------+
+               |   Order Flow   |   |   Price Flow   |
+               |   (Commands)   |   |   (Events)     |
+               +--------+-------+   +--------+-------+
+                        |                    |
+                        v                    |
+               +----------------+             |
+               | Matching Engine|<------------+
+               +----------------+
+                        |
+                        | (Trade / Price Events)
+                        v
+               +----------------+
+               | Market Data    |
+               | (Multicast)    |
+               +----------------+
+
 
 ---
 
